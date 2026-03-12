@@ -38,7 +38,8 @@ BEST_ALPHA = 231
 BEST_BETA = 838
 
 FEATURE_COLS = ["CGM (mg / dl)", "GI_Impact_Factor", "Insulin_Impact_Factor"]
-MODELS_TO_COMPARE = ["SVR", "1D-CNN", "Proposed (Ours)"]
+# 👇 加入了复现模型
+MODELS_TO_COMPARE = ["SVR", "1D-CNN", "CNN-BiLSTM-Att (Liang)", "Proposed (Ours)"]
 
 WINDOW_SIZE = 16
 HORIZON_STEP = 1
@@ -184,6 +185,34 @@ class CNNModel(nn.Module):
         delta = self.fc(x)
         return last_known_cgm + delta
 
+# 👇 参照梁晨(2022)复现的 SOTA 对比模型
+class CNN_BiLSTM_Att_Model(nn.Module):
+    def __init__(self, input_size):
+        super(CNN_BiLSTM_Att_Model, self).__init__()
+        self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=64, kernel_size=1)
+        self.relu = nn.ReLU()
+        self.bilstm1 = nn.LSTM(input_size=64, hidden_size=20, num_layers=1, batch_first=True, bidirectional=True)
+        self.bilstm2 = nn.LSTM(input_size=40, hidden_size=60, num_layers=1, batch_first=True, bidirectional=True)
+        self.attention_weights = nn.Sequential(
+            nn.Linear(120, 120),
+            nn.Tanh(),
+            nn.Linear(120, 1)
+        )
+        self.fc = nn.Linear(120, 1)
+
+    def forward(self, x):
+        last_known_cgm = x[:, -1, 0].unsqueeze(1)
+        x_conv = x.permute(0, 2, 1)
+        x_conv = self.relu(self.conv1(x_conv))
+        x_conv = x_conv.permute(0, 2, 1)
+        out, _ = self.bilstm1(x_conv)
+        out, _ = self.bilstm2(out)
+        weights = self.attention_weights(out)
+        weights = torch.softmax(weights, dim=1)
+        context = torch.sum(weights * out, dim=1)
+        delta = self.fc(context)
+        return last_known_cgm + delta
+
 
 def train_eval_pytorch(model, train_loader, X_test_t, is_frozen=False):
     model.to(DEVICE)
@@ -299,6 +328,9 @@ def run_generalization_test():
                 elif model_name == "1D-CNN":
                     model = CNNModel(3, WINDOW_SIZE)
                     y_pred_scaled = train_eval_pytorch(model, loader, X_test_t)
+                elif model_name == "CNN-BiLSTM-Att (Liang)": # 👇 加入了新模型的调度
+                    model = CNN_BiLSTM_Att_Model(3)
+                    y_pred_scaled = train_eval_pytorch(model, loader, X_test_t)
                 else:  # Proposed (Ours) 核心调度逻辑 🚀
                     L_logic = len(df_current)
                     if L_logic < BEST_ALPHA:  # 触发冷启动：冻结基座
@@ -344,8 +376,8 @@ def run_generalization_test():
     print("\n" + "=" * 90 + "\n 表 5-6  Ohio T1DM 跨病种泛化性能终极报表 (已启用动态分层架构)\n" + "=" * 90)
     print(df_res.to_string(index=False))
 
-    df_res.to_excel("./Ohio_Generalization_Results.xlsx", index=False)
-    print("\n 泛化性实验报表已成功保存至 ./Ohio_Generalization_Results.xlsx")
+    df_res.to_excel("./Ohio1_Generalization_Results.xlsx", index=False)
+    print("\n 泛化性实验报表已成功保存至 ./Ohio1_Generalization_Results.xlsx")
 
 
 if __name__ == "__main__":
