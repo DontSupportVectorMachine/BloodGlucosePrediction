@@ -33,8 +33,8 @@ seed_everything(42)  # 固定种子，保证每次运行结果一致
 
 # =================  配置区域 =================
 DATA_BASE_DIR = r"./processed_data_v2"
-BEST_ALPHA = 235
-BEST_BETA = 1170
+BEST_ALPHA = 231
+BEST_BETA = 838
 
 EXPERIMENTS = {
     "Small_Exp": {"folder": "Small_200", "strategy": "freeze_lstm", "desc": "冷启动阶段 (Small_200)"},

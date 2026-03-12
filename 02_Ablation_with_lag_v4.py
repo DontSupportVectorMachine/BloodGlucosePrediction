@@ -21,8 +21,8 @@ def seed_everything(seed=42):
 
 seed_everything(42)
 # ==========  核心参数 ==========
-BEST_ALPHA = 235
-BEST_BETA = 1170
+BEST_ALPHA = 231
+BEST_BETA = 838
 WINDOW_SIZE = 16  # 4小时生理窗口
 PREDICT_STEP = 1  # 预测下一节点 (30分钟超前预测)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

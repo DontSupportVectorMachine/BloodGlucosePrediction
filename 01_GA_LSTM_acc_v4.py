@@ -232,7 +232,7 @@ def eval_params(ind):
         arr = global_scaler.transform(df_p)
 
         X, y = [], []
-        # 🚨 修正越界 Bug：循环必须减去 horizon_step
+        #  修正越界 Bug：循环必须减去 horizon_step
         for i in range(len(arr) - window_size - horizon_step):
             X.append(arr[i:i + window_size])
             y.append(arr[i + window_size + horizon_step, 0])
